@@ -1,0 +1,17 @@
+{
+  "root": "/home/dev/feedback/uid29549",
+  "B": "/home/dev/feedback/uid29549",
+  "sha": "8e2d53be0419c59c98b1ca4be3a0be381e0d24bd",
+  "wslDistro": "Ubuntu-26.04",
+  "source": {
+    "owner": "v2fly",
+    "repo": "v2ray-core",
+    "sha": "8e2d53be0419c59c98b1ca4be3a0be381e0d24bd"
+  },
+  "fork": {
+    "owner": "Rrr119",
+    "repo": "v2ray-core",
+    "cloneUrl": "https://github.com/Rrr119/v2ray-core.git"
+  },
+  "at": "2026-11-20T07:03:14.696Z"
+}
