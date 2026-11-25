@@ -80,6 +80,16 @@ func (w *tcpWorker) callback(conn internet.Connection) {
 			})
 		}
 	}
+
+	pqConn, pqErr := internet.ApplyPQKEMServer(w.ctx, conn, w.stream)
+	if pqErr != nil {
+		newError("PQ KEM handshake failed").Base(pqErr).WriteToLog(session.ExportIDToError(ctx))
+		cancel()
+		_ = conn.Close()
+		return
+	}
+	conn = pqConn
+
 	ctx = session.ContextWithInbound(ctx, &session.Inbound{
 		Source:  net.DestinationFromAddr(conn.RemoteAddr()),
 		Gateway: net.TCPDestination(w.address, w.port),

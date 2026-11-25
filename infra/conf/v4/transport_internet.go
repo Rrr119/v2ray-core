@@ -18,6 +18,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/internet/http"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/hysteria2"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/kcp"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/pqkem"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/quic"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tcp"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/websocket"
@@ -332,6 +333,8 @@ type StreamConfig struct {
 	GRPCSettings   *GunConfig              `json:"grpcSettings"`
 	Hy2Settings    *Hy2Config              `json:"hy2Settings"`
 	SocketSettings *socketcfg.SocketConfig `json:"sockopt"`
+	PQKEMSettings  *pqkem.Config           `json:"pqkemSettings,omitempty"`
+	PQKEMOption    *pqkem.Config           `json:"pqkem,omitempty"`
 }
 
 // Build implements Buildable.
@@ -448,6 +451,15 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 			return nil, newError("Failed to build sockopt.").Base(err)
 		}
 		config.SocketSettings = ss
+	}
+	pqkemConfig := c.PQKEMSettings
+	if pqkemConfig == nil {
+		pqkemConfig = c.PQKEMOption
+	}
+	if pqkemConfig != nil && pqkemConfig.Enabled {
+		if err := internet.AttachPQKEMConfig(config, pqkemConfig); err != nil {
+			return nil, err
+		}
 	}
 	return config, nil
 }

@@ -52,7 +52,11 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *MemoryStrea
 		if dialer == nil {
 			return nil, newError(protocol, " dialer not registered").AtError()
 		}
-		return dialer(ctx, dest, streamSettings)
+		conn, err := dialer(ctx, dest, streamSettings)
+		if err != nil {
+			return nil, err
+		}
+		return ApplyPQKEMClient(ctx, conn, streamSettings)
 	}
 
 	if dest.Network == net.Network_UDP {

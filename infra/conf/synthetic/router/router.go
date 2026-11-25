@@ -10,6 +10,7 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	"github.com/v2fly/v2ray-core/v5/app/router"
+	"github.com/v2fly/v2ray-core/v5/app/router/userpolicy"
 	"github.com/v2fly/v2ray-core/v5/common/platform"
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 	"github.com/v2fly/v2ray-core/v5/infra/conf/cfgcommon"
@@ -88,9 +89,40 @@ type RouterConfig struct { // nolint: revive
 	DomainStrategy *string            `json:"domainStrategy"`
 	Balancers      []*BalancingRule   `json:"balancers"`
 
+	UserPolicies []userpolicy.Policy `json:"userPolicies"`
+	UserPolicy   *userpolicy.Config  `json:"userPolicy"`
+	ZeroTrust    *ZeroTrustConfig    `json:"zeroTrust"`
+
 	DomainMatcher string `json:"domainMatcher"`
 
 	cfgctx context.Context
+}
+
+// ZeroTrustConfig configures the fallback decision when no user policy matches.
+type ZeroTrustConfig struct {
+	DefaultDeny        bool   `json:"defaultDeny"`
+	BlockTag           string `json:"blockTag"`
+	DefaultOutboundTag string `json:"defaultOutboundTag"`
+}
+
+// UnmarshalJSON accepts both `true` and the expanded policy object.
+func (z *ZeroTrustConfig) UnmarshalJSON(data []byte) error {
+	if string(data) == "true" {
+		z.DefaultDeny = true
+		z.BlockTag = "blocked"
+		return nil
+	}
+	if string(data) == "false" || string(data) == "null" {
+		*z = ZeroTrustConfig{}
+		return nil
+	}
+	type plain ZeroTrustConfig
+	var decoded plain
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	*z = ZeroTrustConfig(decoded)
+	return nil
 }
 
 func (c *RouterConfig) getDomainStrategy() router.DomainStrategy {
@@ -121,6 +153,32 @@ func (c *RouterConfig) BuildV5(ctx context.Context) (*router.Config, error) {
 func (c *RouterConfig) Build() (*router.Config, error) {
 	config := new(router.Config)
 	config.DomainStrategy = c.getDomainStrategy()
+
+	policyConfig := userpolicy.Config{Policies: append([]userpolicy.Policy(nil), c.UserPolicies...)}
+	if c.UserPolicy != nil {
+		policyConfig.Policies = append(policyConfig.Policies, c.UserPolicy.Policies...)
+		policyConfig.DefaultDeny = policyConfig.DefaultDeny || c.UserPolicy.DefaultDeny
+		if policyConfig.DefaultOutboundTag == "" {
+			policyConfig.DefaultOutboundTag = c.UserPolicy.DefaultOutboundTag
+		}
+		if policyConfig.BlockTag == "" {
+			policyConfig.BlockTag = c.UserPolicy.BlockTag
+		}
+	}
+	if c.ZeroTrust != nil {
+		policyConfig.DefaultDeny = policyConfig.DefaultDeny || c.ZeroTrust.DefaultDeny
+		if c.ZeroTrust.BlockTag != "" {
+			policyConfig.BlockTag = c.ZeroTrust.BlockTag
+		}
+		if c.ZeroTrust.DefaultOutboundTag != "" {
+			policyConfig.DefaultOutboundTag = c.ZeroTrust.DefaultOutboundTag
+		}
+	}
+	policyRules, err := router.RulesFromUserPolicyConfig(policyConfig)
+	if err != nil {
+		return nil, err
+	}
+	config.Rule = append(config.Rule, policyRules...)
 
 	if c.cfgctx == nil {
 		c.cfgctx = cfgcommon.NewConfigureLoadingContext(context.Background())

@@ -1,0 +1,18 @@
+{
+  "uid": "36830",
+  "harness": "Codex CLI",
+  "snapshotUrl": "https://github.com/Rrr119/v2ray-core/commit/6f03ad85bb6a3a3b790e54291fb1cb688d3b103a",
+  "harnessVersion": "codex-cli 0.167.2",
+  "operatingSystem": "Ubuntu 26.04.1 LTS",
+  "operatingSystemCell": [
+    "MacOS/Linux"
+  ],
+  "outputDirectory": "/home/dev/feedback/uid36830",
+  "wslDistro": "Ubuntu-26.04",
+  "B": {
+    "success": false,
+    "canceled": true,
+    "error": "任务已取消",
+    "side": "B"
+  }
+}
